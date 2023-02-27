@@ -1,111 +1,160 @@
 package steps;
 
 import helper.Assertions;
+import helper.CustomWait;
+import helper.Filter;
 import io.qameta.allure.Step;
-import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.interactions.Actions;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import pages.YandexMarket;
 import pages.YandexSearch;
-
 import java.util.List;
 
-import static java.lang.Thread.sleep;
-
+/**
+ * Класс содержит шаги.
+ * @author Наталья
+ */
 public class Steps {
-    private static WebDriverWait wait;
+    /**
+     * Драйвер
+     */
     private static WebDriver driver;
+    /**
+     * Время явного ожидания в секундах
+     */
+    private static int timeout;
     public static void setDriver(WebDriver currentDriver){
         driver = currentDriver;
-        wait = new WebDriverWait(driver,30);
     }
+    public static void setTimeout(int t) {
+        timeout = t;
+    }
+    /**
+     * Переходит на сайт
+     * @param url адрес сайта
+     */
     @Step("Переходим на сайт {url}")
     public static void openSite(String url){
         driver.get(url);
     }
-    @Step("Переходим на {serviceName}")
+    /**
+     * Открывает сервис Яндекса
+     * @param serviceName название сервиса
+     */
+    @Step("Открываем {serviceName}")
     public static void openService(String serviceName){
         YandexSearch yandexSearch = new YandexSearch(driver);
         yandexSearch.showAllServices();
         yandexSearch.openService(serviceName);
     }
-    @Step("Открываем категорию {category}: {subCategory}")
-    public static void openCategory(String category, String subCategory){
-        YandexMarket market = new YandexMarket(driver);
+    /**
+     * Открывает каталог
+     */
+    @Step("Открываем каталог")
+    public static void openCatalog(){
+        YandexMarket market = new YandexMarket(driver, timeout);
         market.openCatalog();
-
-        market.openCategory(category, subCategory);
     }
-    @Step("Фильтру {filter} устанавливаем минимальное значение {min} и максимальное {max}")
-    public static void setFilter(String filter, long min, long max){
-        YandexMarket market = new YandexMarket(driver);
-        market.setFilter(filter, min, max);
+    /**
+     * Наводит мышь на заданную категорию
+     * @param category название категории
+     */
+    @Step("Наводим курсор на категорию \"{category}\"")
+    public static void pointOnCategory(String category){
+        YandexMarket market = new YandexMarket(driver, timeout);
+        market.pointOnCategory(category);
     }
-
-    @Step("Задаем фильтр {values}")
-    public static void setFilter(String ... values){
-        YandexMarket market = new YandexMarket(driver);
-        market.setFilter(values);
+    /**
+     * Открывает заданную подкатегорию
+     * @param subcategory название подкатегории
+     */
+     @Step("Открываем подкатегорию \"{subcategory}\"")
+     public static void openSubcategory(String subcategory){
+         YandexMarket market = new YandexMarket(driver, timeout);
+         market.openSubcategory(subcategory);
+     }
+    /**
+     * Устанавливает фильтры
+     * @param filters список фильтров
+     */
+    @Step("Устанавливаем фильтры")
+    public static void setFilter(List<Filter> filters){
+        for (Filter filter : filters)
+            setFilter(filter);
     }
+    /**
+     * Устанавливает фильтр
+     * @param filter фильтр
+     */
+    @Step("Устанавливаем фильтр {filter}")
+    public static void setFilter(Filter filter){
+        YandexMarket market = new YandexMarket(driver, timeout);
+        market.setFilter(filter);
+    }
+    /**
+     * Проверяет, что все товары соответствуют фильтру
+     * @param filters список фильтров
+     */
     @Step("Проверяем, что все товары соответствуют фильтру")
-    public static void checkFilters(String filter1,long min, long max, String filter2, String company1, String company2){
-        YandexMarket market = new YandexMarket(driver);
-        WebDriverWait wait = new WebDriverWait(driver, 10);
-
+    public static void checkFilters(List<Filter> filters){
+        YandexMarket market = new YandexMarket(driver,timeout);
         List<WebElement> resultList = market.getResultList();
-
-        Actions actions = new Actions(driver);
-
-        int i = 1;
-        helper.Assertions.assertTrue(resultList.stream().allMatch(x->Integer.parseInt(x.findElement(By.xpath(
-                                ".//*[contains(@data-auto, 'mainPrice')]/span[not(contains(text(),'₽'))]"))
-                        .getText().replace(" ","")) >= min &&
-                        Integer.parseInt(x.findElement(By.xpath(
-                                        ".//*[contains(@data-auto, 'mainPrice')]/span[not(contains(text(),'₽'))]"))
-                                .getText().replace(" ","")) < max)
-                ,
-                "На странице " + i + " не все товары удовлетворяют условию " + min + " " + max);
-        helper.Assertions.assertTrue(resultList.stream().allMatch(x->(x.findElement(By.xpath(
-                                ".//*[contains(@data-baobab-name, 'title')]")).
-                        getText().toLowerCase().contains(company1.toLowerCase())||
-                        x.findElement(By.xpath(
-                                        ".//*[contains(@data-baobab-name, 'title')]"))
-                                .getText().toLowerCase().contains(company2.toLowerCase()))),
-                "На странице " + i + " не все товары удовлетворяют условию "
-                        + filter2 + " = " + company1 + " или " + filter2 + " = " + company2);
-
-        i++;
-        while (driver.findElements(By.xpath("//*[contains(@data-auto,'pagination-next')]")).size() > 0) {
-            actions.moveToElement(driver.findElement(By.xpath(
-                    "//*[contains(@data-auto,'pagination-next')]"))).click().build().perform();
-
-            wait.until(ExpectedConditions.numberOfElementsToBe(By.xpath(
-                    "//*[contains(@data-grabber,'SearchSerp')]/*[contains(@data-auto, 'preloader')]"),0));
-
+        for (Filter filter : filters)
+            market.checkFilter(resultList, filter);
+        while (market.containsNextPageButton()) {
+            market.nextPage();
             resultList = market.getResultList();
-            helper.Assertions.assertTrue(resultList.stream().allMatch(x->Integer.parseInt(x.findElement(By.xpath(
-                                    ".//*[contains(@data-auto, 'mainPrice')]/span[not(contains(text(),'₽'))]"))
-                            .getText().replace(" ","")) >= min &&
-                            Integer.parseInt(x.findElement(By.xpath(
-                                            ".//*[contains(@data-auto, 'mainPrice')]/span[not(contains(text(),'₽'))]"))
-                                    .getText().replace(" ","")) < max)
-                    ,
-                    "На странице " + i + " не все товары удовлетворяют условию "+  min + " " + max);
-
-            Assertions.assertTrue(resultList.stream().allMatch(x->(x.findElement(By.xpath(
-                                    ".//*[contains(@data-baobab-name, 'title')]")).
-                            getText().toLowerCase().contains(company1.toLowerCase())||
-                            x.findElement(By.xpath(
-                                            ".//*[contains(@data-baobab-name, 'title')]"))
-                                    .getText().toLowerCase().contains(company2.toLowerCase()))),
-                    "На странице " + i + " не все товары удовлетворяют условию "
-                            + filter2 + " = " + company1 + " или " + filter2 + " = " + company2);
-
-            i++;
+            for (Filter filter : filters)
+                market.checkFilter(resultList, filter);
         }
     }
-
+    /**
+     * Открывает первую страницу
+     */
+    @Step("Возвращаемся на первую страницу")
+    public static void goToFirstPage(){
+        String currentUrl = driver.getCurrentUrl();
+        int idx = currentUrl.indexOf("&page");
+        if (idx > 0)
+            driver.get(currentUrl.substring(0,idx));
+}
+    /**
+     * Возвращает наименование первого элемента
+     * @return наименование первого элемента
+     */
+    @Step("Получаем наименование первого элемента")
+    public static String getNameOfFirstResult(){
+        YandexMarket market = new YandexMarket(driver, timeout);
+        return market.getTitle(market.getResultList().get(0));
+    }
+    /**
+     * Вводит в поисковую строку значение
+     * @param value значение
+     */
+    @Step("Вводим в поисковую строку \"{value}\"")
+    public static void sendKeys(String value){
+        YandexMarket market = new YandexMarket(driver, timeout);
+        market.getSearchField().sendKeys(value);
+    }
+    /**
+     * Нажимает кнопку поиска
+     */
+    @Step("Нажимаем кнопку поиска")
+    public static void pressSearchButton(){
+        YandexMarket market = new YandexMarket(driver, timeout);
+        market.getSearchButton().click();
+    }
+    /**
+     * Проверяет, что заданное значение присутствует в поисковой выборке
+     * @param name значение
+     */
+    @Step("Проверяем, что значение \"{name}\" присутствует в поисковой выборке")
+    public static void checkElement(String name){
+        YandexMarket market = new YandexMarket(driver, timeout);
+        CustomWait wait = new CustomWait(driver, timeout);
+        wait.untilPresenceOfElement("//footer");
+        String result = market.getTitle(market.getResultList().get(0));
+        Assertions.assertTrue(result.contains(name)||name.contains(result),
+            "По запросу " + name + " нет подходящих элементов");
+    }
 }

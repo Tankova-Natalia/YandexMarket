@@ -1,101 +1,109 @@
 import helper.Assertions;
+import helper.Filter;
 import helper.Properties;
+import io.qameta.allure.Description;
+import io.qameta.allure.Feature;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.openqa.selenium.By;
-import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.interactions.Actions;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.chrome.ChromeOptions;
 import pages.YandexMarket;
 import steps.Steps;
-
 import java.io.File;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
-import static java.lang.Thread.onSpinWait;
-import static java.lang.Thread.sleep;
-
+/**
+ * Класс содержит тесты.
+ * @author Наталья
+ */
 public class Tests {
-
-    protected WebDriver driver;
-
+    /**
+     * Драйвер
+     */
+    private WebDriver driver;
+    /**
+     * Время явного и неявного ожидания в секундах
+     */
+    int timeout = 5;
+    /**
+     * Очищает папку allure-results от предыдущих отчетов
+     */
     @BeforeAll
     public static void beforeAll() {
         File dir = new File("allure-results");
         File[] files = dir.listFiles();
         Arrays.stream(files).forEach(x -> x.delete());
     }
-
+    /**
+     * Запускает браузер. Открывает окно на полный экран. Устанавливает неявное ожидание.
+     */
     @BeforeEach
     public void beforeEach() {
         System.setProperty("webdriver.chrome.driver", System.getenv("CHROME_DRIVER"));
-        driver = new ChromeDriver();
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--disable-extensions");
+        driver = new ChromeDriver(options);
         driver.manage().window().maximize();
-        driver.manage().timeouts().implicitlyWait(60, TimeUnit.SECONDS);
+        driver.manage().timeouts().implicitlyWait(timeout, TimeUnit.SECONDS);
     }
-
-    @ParameterizedTest
+    /**
+     * Открывает https://ya.ru/. Переходит на Маркет. Выбирает категорию ноутбуки. Устанавливает значения фильтра.
+     * Проверяет, что на странице отображается более 12 элементов. Проверяет, что полученные результаты соответствуют
+     * заданному фильтру. Переходит на первую страницу. Запоминает первый элемент. Ищет его в поиске. Проверяет, что
+     * в результатах есть искомый элемент.
+     *
+     * @param serviceName
+     * @param category категория товаров
+     * @param subCategory подкатегория товаров
+     * @param rangeFilter фильтр, устанавливающий диапазон значений
+     * @param min минимальное значение "Цена"
+     * @param max максимальное значение цена
+     * @param enumFilter фильтр, устанавливающий несколько значений
+     * @param enumValue1 значение фильтра, устанавливающего несколько значений
+     * @param enumValue2 значение фильтра, устанавливающего несколько значений
+     * @param amountOfElements значение для проверки количества элементов на первой странице
+     */
+    @Feature("Проверка результатов поиска")
+    @DisplayName("Проверка результатов поиска")
+    @ParameterizedTest(name="{displayName}, {arguments}")
+    //@CsvSource("Маркет, Ноутбуки и компьютеры, Ноутбуки, Цена, 30000, 35000, Производитель, HP, Acer, 12")
     @CsvSource("Маркет, Ноутбуки и компьютеры, Ноутбуки, Цена, 10000, 900000, Производитель, Lenovo, HUAWEI, 12")
-    public void findLaptops(String serviceName, String category, String subCategory,
-                            String filter1, long min, long max,
-                            String filter2, String company1, String company2,
+    public void SeleniumYandexMarket(String serviceName, String category, String subCategory,
+                            String rangeFilter, String min, String max,
+                            String enumFilter, String enumValue1, String enumValue2,
                             int amountOfElements) {
-
-
         Steps.setDriver(driver);
+        Steps.setTimeout(timeout);
         Steps.openSite(Properties.testProperties.yandexUrl());
         Steps.openService(serviceName);
-        Steps.openCategory(category, subCategory);
-
-        Steps.setFilter(filter1, min, max);
-        Steps.setFilter(filter2, company1, company2);
-        WebDriverWait wait = new WebDriverWait(driver, 10);
-        long start = System.currentTimeMillis();
-        wait.until(ExpectedConditions.numberOfElementsToBe(By.xpath(
-                "//*[contains(@data-grabber,'SearchSerp')]/*[contains(@data-auto, 'preloader')]"),0));
-        System.out.println(System.currentTimeMillis()-start);
-
-        YandexMarket market = new YandexMarket(driver);
+        Steps.openCatalog();
+        Steps.pointOnCategory(category);
+        Steps.openSubcategory(subCategory);
+        List<Filter> filters = new ArrayList<>();
+        filters.add(new Filter(enumFilter, "enum",List.of(enumValue1,enumValue2)));
+        filters.add(new Filter(rangeFilter, "range", List.of(min,max)));
+        YandexMarket market = new YandexMarket(driver,timeout);
+        Steps.setFilter(filters);
+        market.waitForDataRefresh();
+        List<Filter> setFilters = market.getFilters();
         List<WebElement> resultList = market.getResultList();
         Assertions.assertTrue(resultList.size() >= amountOfElements,
                 "На первой странице отображается не больше " + amountOfElements + " элементов");
-
-        //Steps.checkFilters(filter1, min, max, filter2, company1, company2);
-
-
-        /*driver.get("https://market.yandex.ru/catalog--noutbuki/54544/list?hid=91013&allowCollapsing=1&local-offers-first=0&glfilter=7893318%3A459710%2C152981&pricefrom=10000&priceto=900000&page=30");
-        String url = driver.getCurrentUrl();
-        driver.get(url.substring(0, url.indexOf("&page")));
-        rfv
-         */
-        //YandexMarket market = new YandexMarket(driver);
-        /*
-        WebElement first = market.getResultList().get(0).findElement(By.xpath(
-                ".//*[contains(@data-baobab-name, 'title')]"));
-        driver.findElement(By.xpath("//*[@id='header-search']")).sendKeys(first.getText());
-        driver.findElement(By.xpath("//*[contains(text(),'Найти')]/..")).click();
-        try {
-            sleep(10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        System.out.println(market.getResultList().stream().anyMatch(x->x.findElement(By.xpath(
-                ".//*[contains(@data-baobab-name, 'title')]")).getText().contains(first.getText())));
-
-         */
+        Steps.checkFilters(setFilters);
+        Steps.goToFirstPage();
+        String firstResult = Steps.getNameOfFirstResult();
+        Steps.sendKeys(firstResult);
+        Steps.pressSearchButton();
+        Steps.checkElement(firstResult);
     }
-
+    /**
+     * Закрывает браузер.
+     */
     @AfterEach
     public void afterEach() {
         driver.quit();
     }
-
 }
