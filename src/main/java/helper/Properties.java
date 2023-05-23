@@ -4,7 +4,7 @@ import org.aeonbits.owner.ConfigFactory;
 
 /**
  * Предоставляет доступ к методам интерфейса TestProperties
- * @author Наталья
+ * @author Наталья Танькова
  */
 public class Properties {
     public  static TestProperties testProperties = ConfigFactory.create(TestProperties.class);

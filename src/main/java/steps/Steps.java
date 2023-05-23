@@ -2,27 +2,47 @@ package steps;
 
 import helper.Assertions;
 import helper.CustomWait;
-import helper.Filter;
+import helper.Range;
 import io.qameta.allure.Step;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import pages.YandexMarket;
 import pages.YandexSearch;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Класс содержит шаги.
- * @author Наталья
+ * @author Наталья Танькова
  */
 public class Steps {
     /**
      * Драйвер
+     * @author Наталья Танькова
      */
     private static WebDriver driver;
     /**
      * Время явного ожидания в секундах
+     * @author Наталья Танькова
      */
     private static int timeout;
+    /**
+     * Максимальное время выполнения цикла в минутах
+     * @author Наталья Танькова
+     */
+    private static long maxWaitInMinutes = 5;
+    /**
+     * Максимальное время выполнения цикла в секундах
+     * @author Наталья Танькова
+     */
+    private static long maxWainInSec = maxWaitInMinutes * 60;
+    /**
+     * Максимальное время выполнения цикла в миллисекундах
+     * @author Наталья Танькова
+     */
+    private static long maxWaitInMilliSec = maxWainInSec * 1000;
     public static void setDriver(WebDriver currentDriver){
         driver = currentDriver;
     }
@@ -30,7 +50,8 @@ public class Steps {
         timeout = t;
     }
     /**
-     * Переходит на сайт
+     * Переходит на указанный сайт.
+     * @author Наталья Танькова
      * @param url адрес сайта
      */
     @Step("Переходим на сайт {url}")
@@ -38,7 +59,9 @@ public class Steps {
         driver.get(url);
     }
     /**
-     * Открывает сервис Яндекса
+     * Открывает сервис Яндекса.
+     * @author Наталья Танькова
+     * @author Наталья Танькова
      * @param serviceName название сервиса
      */
     @Step("Открываем {serviceName}")
@@ -48,7 +71,8 @@ public class Steps {
         yandexSearch.openService(serviceName);
     }
     /**
-     * Открывает каталог
+     * Открывает каталог.
+     * @author Наталья Танькова
      */
     @Step("Открываем каталог")
     public static void openCatalog(){
@@ -56,7 +80,8 @@ public class Steps {
         market.openCatalog();
     }
     /**
-     * Наводит мышь на заданную категорию
+     * Наводит мышь на заданную категорию.
+     * @author Наталья Танькова
      * @param category название категории
      */
     @Step("Наводим курсор на категорию \"{category}\"")
@@ -65,7 +90,8 @@ public class Steps {
         market.pointOnCategory(category);
     }
     /**
-     * Открывает заданную подкатегорию
+     * Открывает заданную подкатегорию.
+     * @author Наталья Танькова
      * @param subcategory название подкатегории
      */
      @Step("Открываем подкатегорию \"{subcategory}\"")
@@ -74,42 +100,68 @@ public class Steps {
          market.openSubcategory(subcategory);
      }
     /**
-     * Устанавливает фильтры
-     * @param filters список фильтров
+     * Устанавливает диапазон значений указанного фильтра.
+     * @author Наталья Танькова
+     * @param filterName название фильтра
+     * @param min минимальное значение
+     * @param max максимальное значение
      */
-    @Step("Устанавливаем фильтры")
-    public static void setFilter(List<Filter> filters){
-        for (Filter filter : filters)
-            setFilter(filter);
-    }
-    /**
-     * Устанавливает фильтр
-     * @param filter фильтр
-     */
-    @Step("Устанавливаем фильтр {filter}")
-    public static void setFilter(Filter filter){
+    @Step("Устанавливаем диапазон значений [{min}, {max}] фильтра {filterName}")
+    public static void setFilter(String filterName, double min, double max){
         YandexMarket market = new YandexMarket(driver, timeout);
-        market.setFilter(filter);
+        market.setFilter(filterName, min, max);
     }
     /**
-     * Проверяет, что все товары соответствуют фильтру
-     * @param filters список фильтров
+     * Устанавливает минимальное или максимальное значение диапазона указанного фильтра.
+     * @author Наталья Танькова
+     * @param filterName название фильтра
+     * @param range какое значение необходимо установить минимальные или максимальное
+     * @param value значение
      */
-    @Step("Проверяем, что все товары соответствуют фильтру")
-    public static void checkFilters(List<Filter> filters){
+    @Step("Устанавливаем {range} значение фильтра {filterName} равно {value}")
+    public static void setFilter(String filterName, Range range, double value){
+        YandexMarket market = new YandexMarket(driver, timeout);
+        market.setFilter(filterName, range, value);
+    }
+
+    /**
+     * Устанавливает перечень значений указанного фильтра типа checkbox.
+     * @author Наталья Танькова
+     * @param filterName название фильтра
+     * @param values строковые значения
+     */
+    @Step("Устанавливаем перечень значений {values} фильтра {filterName}")
+    public static void setFilter(String filterName, List<String> values){
+        YandexMarket market = new YandexMarket(driver, timeout);
+        market.setFilter(filterName,values);
+    }
+    /**
+     * Проверяет, что все товары на всех страницах соответствуют фильтру. Если не соответствует, возвращает список,
+     * состоящий из названия товара, не соответствующего фильтрам, и сообщений об ошибке
+     * Если цикл выполняется дольше maxWaitInMinutes минут, тест не проходит.
+     * @author Наталья Танькова
+     */
+    @Step("Проверяем, что все товары соответствуют заданным фильтрам")
+    public static void checkGoodsMatchFilters(){
         YandexMarket market = new YandexMarket(driver,timeout);
+        Map<String, List<String>> filters = market.getFilters();
         List<WebElement> resultList = market.getResultList();
-        for (Filter filter : filters)
-            market.checkFilter(resultList, filter);
+        Map<String,List<String>> elementsNotMatch = new HashMap<>();
+        market.checkGoodsMatchFilters(resultList, filters,elementsNotMatch);
+        long start = System.currentTimeMillis();
         while (market.containsNextPageButton()) {
             market.nextPage();
             resultList = market.getResultList();
-            for (Filter filter : filters)
-                market.checkFilter(resultList, filter);
+            market.checkGoodsMatchFilters(resultList, filters,elementsNotMatch);
+            if (System.currentTimeMillis() - start >= maxWaitInMilliSec)
+                org.junit.jupiter.api.Assertions.fail("Время выполнения цикла превысило " + maxWaitInMinutes + " минут.");
         }
+        Assertions.assertEquals(0, elementsNotMatch.size(),
+                "Заданы фильтры:\n"+ filters +"\nСледующие товары не соответствуют фильтру:\n" + elementsNotMatch);
     }
     /**
-     * Открывает первую страницу
+     * Открывает первую страницу.
+     * @author Наталья Танькова
      */
     @Step("Возвращаемся на первую страницу")
     public static void goToFirstPage(){
@@ -119,7 +171,8 @@ public class Steps {
             driver.get(currentUrl.substring(0,idx));
 }
     /**
-     * Возвращает наименование первого элемента
+     * Возвращает наименование первого элемента.
+     * @author Наталья Танькова
      * @return наименование первого элемента
      */
     @Step("Получаем наименование первого элемента")
@@ -128,7 +181,8 @@ public class Steps {
         return market.getTitle(market.getResultList().get(0));
     }
     /**
-     * Вводит в поисковую строку значение
+     * Вводит в поисковую строку значение.
+     * @author Наталья Танькова
      * @param value значение
      */
     @Step("Вводим в поисковую строку \"{value}\"")
@@ -137,7 +191,8 @@ public class Steps {
         market.getSearchField().sendKeys(value);
     }
     /**
-     * Нажимает кнопку поиска
+     * Нажимает кнопку поиска.
+     * @author Наталья Танькова
      */
     @Step("Нажимаем кнопку поиска")
     public static void pressSearchButton(){
@@ -145,7 +200,8 @@ public class Steps {
         market.getSearchButton().click();
     }
     /**
-     * Проверяет, что заданное значение присутствует в поисковой выборке
+     * Проверяет, что заданное значение присутствует в поисковой выборке.
+     * @author Наталья Танькова
      * @param name значение
      */
     @Step("Проверяем, что значение \"{name}\" присутствует в поисковой выборке")

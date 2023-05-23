@@ -4,6 +4,7 @@ import org.aeonbits.owner.Config;
 
 /**
  * Интерфейс для взаимодействия с property файлом
+ * @author Наталья Танькова
  */
 @Config.LoadPolicy(Config.LoadType.MERGE)
 @Config.Sources({"system:properties",
@@ -13,6 +14,7 @@ import org.aeonbits.owner.Config;
 public interface TestProperties extends Config{
     /**
      * Возвращает из property файла адрес Yandex
+     * @author Наталья Танькова
      * @return адрес Yandex
      */
     @Config.Key("yandex.url")

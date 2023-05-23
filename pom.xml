@@ -25,7 +25,7 @@
             <version>${junit.jupiter.version}</version>
         </dependency>
 
-        <!-- Parameterized Tests -->
+        <!-- Parameterized tests.selenium.Tests -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>

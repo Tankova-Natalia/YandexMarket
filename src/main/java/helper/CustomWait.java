@@ -1,31 +1,33 @@
 package helper;
 
+import org.junit.jupiter.api.Assertions;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import static java.lang.Thread.sleep;
 
 /**
  * Пользовательское явное ожидание
- * @author Наталья
+ * @author Наталья Танькова
  */
 public class CustomWait {
     /**
      * Драйвер
+     * @author Наталья Танькова
      */
     private WebDriver driver;
     /**
      * Время явного ожидания в секундах
+     * @author Наталья Танькова
      */
     private long timeout;
     public CustomWait(WebDriver driver, long timeout) {
         this.driver = driver;
         this.timeout = timeout;
     }
-
     /**
-     * Ждет появления заданного элемента
+     * Ждет появления заданного элемента.
+     * @author Наталья Танькова
      * @param selector селектор элемента
      */
     public void untilPresenceOfElement(String selector) {
@@ -38,13 +40,13 @@ public class CustomWait {
                 throw new RuntimeException(e);
             }
             if ((System.currentTimeMillis()-start)/1000 > timeout)
-                throw new NoSuchElementException("Время ожидания присутствия элемента " + selector + " вышло");
+                Assertions.fail("Время ожидания присутствия элемента " + selector + " вышло");
         }
         driver.manage().timeouts().implicitlyWait(timeout, TimeUnit.SECONDS);
-
     }
     /**
-     * Ждет исчезновения заданного элемента
+     * Ждет исчезновения заданного элемента.
+     * @author Наталья Танькова
      * @param selector селектор элемента
      */
     public void untilAbsenceOfElement(String selector) {
@@ -57,9 +59,8 @@ public class CustomWait {
                 throw new RuntimeException(e);
             }
             if ((System.currentTimeMillis()-start)/1000 > timeout)
-                throw new NoSuchElementException("Время ожидания отсутствия элемента " + selector + " вышло");
+                Assertions.fail("Время ожидания присутствия элемента " + selector + " вышло");
         }
         driver.manage().timeouts().implicitlyWait(timeout, TimeUnit.SECONDS);
     }
-
 }

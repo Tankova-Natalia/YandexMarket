@@ -12,14 +12,17 @@ import java.util.Set;
 public class YandexSearch{
     /**
      * Драйвер
+     * @author Наталья Танькова
      */
     private WebDriver chromeDriver;
     /**
      * Селектор для кнопки все сервисы
+     * @author Наталья Танькова
      */
     private String selectorAllServices = "//a[@title='Все сервисы']";
     /**
      * Кнопка все сервисы
+     * @author Наталья Танькова
      */
     private WebElement allServices;
     public YandexSearch(WebDriver chromeDriver) {
@@ -27,13 +30,15 @@ public class YandexSearch{
         allServices = this.chromeDriver.findElement(By.xpath(selectorAllServices));
     }
     /**
-     * Раскрывает меню сервисов
+     * Раскрывает меню сервисов.
+     * @author Наталья Танькова
      */
     public void showAllServices(){
         allServices.click();
     }
     /**
-     * Открывает заданный сервис
+     * Открывает заданный сервис.
+     * @author Наталья Танькова
      * @param serviceName название сервиса
      */
     public void openService(String serviceName){
