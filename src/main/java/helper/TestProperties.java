@@ -19,5 +19,7 @@ public interface TestProperties extends Config{
      */
     @Config.Key("yandex.url")
     String yandexUrl();
+@Config.Key("yandex.market.url")
+    String yandexMarketUrl();
 
 }

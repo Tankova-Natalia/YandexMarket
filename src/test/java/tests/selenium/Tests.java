@@ -77,8 +77,9 @@ public class Tests {
                                      int amountOfElements) {
         Steps.setDriver(driver);
         Steps.setTimeout(timeout);
-        Steps.openSite(Properties.testProperties.yandexUrl());
-        Steps.openService(serviceName);
+        //Steps.openSite(Properties.testProperties.yandexUrl());
+        //Steps.openService(serviceName);
+        Steps.openSite(Properties.testProperties.yandexMarketUrl());
         Steps.openCatalog();
         Steps.pointOnCategory(category);
         Steps.openSubcategory(subCategory);
